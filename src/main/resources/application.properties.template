@@ -1,0 +1,5 @@
+debug=true
+
+adsbrecorder.rtl_device=0
+# Set to true to enable bias tee of RTL-SDR Blog V3 receiver
+adsbrecorder.rtl_bias_tee=false
