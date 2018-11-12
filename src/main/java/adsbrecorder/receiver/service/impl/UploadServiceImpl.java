@@ -1,7 +1,5 @@
 package adsbrecorder.receiver.service.impl;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,9 +7,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -40,26 +37,39 @@ public class UploadServiceImpl implements UploadService {
     @Value("${adsbrecorder.client.login}")
     private String loginUri;
 
-    private volatile boolean connected;
+    @Value("${adsbrecorder.client.upload}")
+    private String uploadUri;
 
-    private RestTemplate restTemplate;
+    private volatile boolean connected;
 
     private String authToken;
 
-    @Autowired
-    public UploadServiceImpl(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = requireNonNull(restTemplateBuilder).build();
+    public UploadServiceImpl() {
         initCache();
         connected = false;
     }
 
     private void connect() {
+        RestTemplate restTemplate = new RestTemplate();
         @SuppressWarnings("unchecked")
         Map<String, Object> response = restTemplate.getForObject(String.format("%s?name=%s&key=%s", loginUri, clientName, clientKey), Map.class);
         if (response.containsKey("token")) {
             authToken = String.valueOf(response.get("token"));
             connected = true;
             System.out.println("Connected to server, token: \n" + authToken);
+        }
+    }
+
+    private void postAircraftData(List<Aircraft> aircrafts) {
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.setInterceptors(List.of((request, body, execution) -> {
+            request.getHeaders().add("Authorization", new StringBuilder("Bearer ").append(authToken).toString());
+            return execution.execute(request, body);
+        }));
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = restTemplate.postForEntity(uploadUri, aircrafts, Map.class);
+        if (response.hasBody()) {
+            System.err.println("new_records: " + response.getBody().get("new_records"));
         }
     }
 
@@ -96,7 +106,7 @@ public class UploadServiceImpl implements UploadService {
             initCache();
             if (aircrafts.size() > 0) {
                 logger.info("Uploading {} data records.", aircrafts.size());
-                aircrafts.forEach((a) -> logger.info(a.toString()));
+                postAircraftData(aircrafts);
             } else {
                 logger.info("No data to upload.");
             }
