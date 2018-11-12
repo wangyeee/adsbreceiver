@@ -6,6 +6,8 @@ import java.io.IOException;
 
 import javax.annotation.PostConstruct;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +18,7 @@ import adsbrecorder.receiver.service.UploadService;
 
 @Component
 public class AirplaneLocalMonitor extends Thread implements NewAircraftCallback {
+    private static Logger logger = LoggerFactory.getLogger(AirplaneLocalMonitor.class);
 
     @Value("${adsbrecorder.rtl_bias_tee:false}")
     private boolean biasTee;
@@ -33,12 +36,14 @@ public class AirplaneLocalMonitor extends Thread implements NewAircraftCallback 
 
     @Override
     public void run() {
-        try {
-            if (dump1090 != null) {
+        if (dump1090 != null) {
+            try {
+                logger.info("Set bias T: {}", biasTee);
                 dump1090.setBiasTee(biasTee);
+                logger.info("Starting monitor.");
                 dump1090.startMonitor(this);
+            } catch (IOException e) {
             }
-        } catch (IOException e) {
         }
     }
 
@@ -49,6 +54,6 @@ public class AirplaneLocalMonitor extends Thread implements NewAircraftCallback 
 
     @PostConstruct
     public void initLocalReceiver() {
-        dump1090 = requireNonNull(Dump1090Native.getInstance(deviceIndex));
+        dump1090 = Dump1090Native.getInstance(deviceIndex);
     }
 }
