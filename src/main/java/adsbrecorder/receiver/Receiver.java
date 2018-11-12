@@ -11,11 +11,13 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import adsbrecorder.jni.Dump1090Native;
 
+@EnableScheduling
 @SpringBootApplication
-@ComponentScan(basePackages = {"adsbrecorder.receiver"})
+@ComponentScan(basePackages = {"adsbrecorder.receiver", "adsbrecorder.receiver.service.impl"})
 public class Receiver implements CommandLineRunner {
 
     private static Logger logger = LoggerFactory.getLogger(Receiver.class);

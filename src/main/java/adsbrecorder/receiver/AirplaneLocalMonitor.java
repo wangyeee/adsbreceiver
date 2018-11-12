@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import adsbrecorder.jni.Aircraft;
 import adsbrecorder.jni.Dump1090Native;
 import adsbrecorder.jni.NewAircraftCallback;
+import adsbrecorder.receiver.service.UploadService;
 
 @Component
 public class AirplaneLocalMonitor extends Thread implements NewAircraftCallback {
@@ -23,9 +24,11 @@ public class AirplaneLocalMonitor extends Thread implements NewAircraftCallback 
 
     private Dump1090Native dump1090;
 
+    private UploadService uploadService;
+
     @Override
     public void aircraftFound(Aircraft aircraft) {
-        System.out.println(aircraft);
+        uploadService.uploadAircraftData(aircraft);
     }
 
     @Override
@@ -39,14 +42,13 @@ public class AirplaneLocalMonitor extends Thread implements NewAircraftCallback 
         }
     }
 
-    public AirplaneLocalMonitor() {
+    public AirplaneLocalMonitor(UploadService uploadService) {
         setName(getClass().getName());
+        this.uploadService = requireNonNull(uploadService);
     }
 
     @PostConstruct
     public void initLocalReceiver() {
-        System.out.println("Device index: " + deviceIndex);
-        System.out.println("Bias T: " + biasTee);
         dump1090 = requireNonNull(Dump1090Native.getInstance(deviceIndex));
     }
 }
