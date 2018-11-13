@@ -1,5 +1,6 @@
 package adsbrecorder.receiver.service.impl;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,9 +9,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
 import adsbrecorder.jni.Aircraft;
@@ -18,7 +22,7 @@ import adsbrecorder.receiver.Receiver;
 import adsbrecorder.receiver.service.UploadService;
 
 @Service
-public class UploadServiceImpl implements UploadService {
+public class UploadServiceImpl implements UploadService, ResponseErrorHandler {
 
     private static Logger logger = LoggerFactory.getLogger(UploadServiceImpl.class);
 
@@ -41,16 +45,20 @@ public class UploadServiceImpl implements UploadService {
     private String uploadUri;
 
     private volatile boolean connected;
+    
+    private volatile boolean serverError;
 
     private String authToken;
 
     public UploadServiceImpl() {
         initCache();
         connected = false;
+        serverError = false;
     }
 
     private void connect() {
         RestTemplate restTemplate = new RestTemplate();
+        restTemplate.setErrorHandler(this);
         @SuppressWarnings("unchecked")
         Map<String, Object> response = restTemplate.getForObject(String.format("%s?name=%s&key=%s", loginUri, clientName, clientKey), Map.class);
         if (response.containsKey("token")) {
@@ -62,6 +70,7 @@ public class UploadServiceImpl implements UploadService {
 
     private void postAircraftData(List<Aircraft> aircrafts) {
         RestTemplate restTemplate = new RestTemplate();
+        restTemplate.setErrorHandler(this);
         restTemplate.setInterceptors(List.of((request, body, execution) -> {
             request.getHeaders().add("Authorization", new StringBuilder("Bearer ").append(authToken).toString());
             return execution.execute(request, body);
@@ -90,12 +99,18 @@ public class UploadServiceImpl implements UploadService {
         do {
             if (connected)
                 return;
-            connect();
+            try {
+                connect();
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
             i++;
         } while (i < retry);
-        if (!connected) {
-            logger.info("Failed to connect after {} retries, exit", retry);
-            Receiver.exit(1);
+        if (!serverError) {
+            if (!connected) {
+                logger.info("Failed to connect after {} retries, exit", retry);
+                Receiver.exit(1);
+            }
         }
     }
 
@@ -121,5 +136,25 @@ public class UploadServiceImpl implements UploadService {
     @Override
     public boolean isConnected() {
         return connected;
+    }
+
+    @Override
+    public boolean hasError(ClientHttpResponse response) throws IOException {
+        return response.getStatusCode().series() == HttpStatus.Series.CLIENT_ERROR 
+            || response.getStatusCode().series() == HttpStatus.Series.SERVER_ERROR;
+    }
+
+    @Override
+    public void handleError(ClientHttpResponse response) throws IOException {
+        System.err.println(response.getStatusCode());
+        System.err.println(response.getStatusText());
+        if (response.getStatusCode().series() == HttpStatus.Series.SERVER_ERROR) {
+            connected = false;
+            serverError = true;
+        } else if (response.getStatusCode().series() == HttpStatus.Series.CLIENT_ERROR) {
+            if (response.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                connected = false;
+            }
+        }
     }
 }
