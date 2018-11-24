@@ -8,12 +8,14 @@ import javax.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import adsbrecorder.jni.Aircraft;
 import adsbrecorder.jni.Dump1090Native;
 import adsbrecorder.jni.NewAircraftCallback;
+import adsbrecorder.receiver.repo.FlightRecordStorage;
 import adsbrecorder.receiver.service.UploadService;
 
 @Component
@@ -29,8 +31,11 @@ public class AirplaneLocalMonitor extends Thread implements NewAircraftCallback 
 
     private UploadService uploadService;
 
+    private FlightRecordStorage flightRecordStorage;
+
     @Override
     public void aircraftFound(Aircraft aircraft) {
+        flightRecordStorage.saveRecord(aircraft);
         uploadService.uploadAircraftData(aircraft);
     }
 
@@ -47,9 +52,11 @@ public class AirplaneLocalMonitor extends Thread implements NewAircraftCallback 
         }
     }
 
-    public AirplaneLocalMonitor(UploadService uploadService) {
+    @Autowired
+    public AirplaneLocalMonitor(UploadService uploadService, FlightRecordStorage flightRecordStorage) {
         setName(getClass().getName());
         this.uploadService = requireNonNull(uploadService);
+        this.flightRecordStorage = requireNonNull(flightRecordStorage);
     }
 
     @PostConstruct

@@ -17,19 +17,11 @@ import adsbrecorder.jni.Aircraft;
 @Component
 public class FlightRecordStorage {
 
-    //adsbrecorder.stdalone.db_loc=~/.adsbrec/rec.db
-
     private final static String dbFileName = "rec.db";
     private final static String collectionName = "Aircrafts";
 
     @Value("${adsbrecorder.stdalone.db_loc}")
     private String dbFilesDir;
-
-    @Value("${adsbrecorder.stdalone.db_user:receiver}")
-    private String dbUsername;
-
-    @Value("${adsbrecorder.stdalone.db_pwd:reviecer}")
-    private String dbPassword;
 
     private boolean dbInitialized;
 
@@ -60,7 +52,7 @@ public class FlightRecordStorage {
         db = Nitrite.builder()
                 .compressed()
                 .filePath(dbFile.getAbsolutePath())
-                .openOrCreate(dbUsername, dbPassword);
+                .openOrCreate();
         collection = db.getCollection(collectionName);
         dbInitialized = true;
     }

@@ -2,6 +2,8 @@ package adsbrecorder.jni;
 
 import java.io.Serializable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * Derived from struct aircraft in dump1090.c
  * @author Ye Wang
@@ -25,7 +27,13 @@ public class Aircraft implements Serializable {
     private long oddCprtime;
     private long evenCprtime;
 
+    /**
+     * used to indicate whether this record has been sent to server
+     */
+    private int status;
+
     public Aircraft() {
+        this.status = 0;
     }
 
     public String key() {
@@ -153,15 +161,19 @@ public class Aircraft implements Serializable {
         this.evenCprtime = evenCprtime;
     }
 
-    /*
-     * (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
+    @JsonIgnore
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        long temp;
         result = prime * result + addressICAO;
         result = prime * result + altitude;
         result = prime * result + evenCprlat;
@@ -170,6 +182,7 @@ public class Aircraft implements Serializable {
         result = prime * result + ((flightNumber == null) ? 0 : flightNumber.hashCode());
         result = prime * result + heading;
         result = prime * result + (int) (lastTimeSeen ^ (lastTimeSeen >>> 32));
+        long temp;
         temp = Double.doubleToLongBits(latitude);
         result = prime * result + (int) (temp ^ (temp >>> 32));
         temp = Double.doubleToLongBits(longitude);
@@ -178,14 +191,11 @@ public class Aircraft implements Serializable {
         result = prime * result + oddCprlat;
         result = prime * result + oddCprlon;
         result = prime * result + (int) (oddCprtime ^ (oddCprtime >>> 32));
+        result = prime * result + status;
         result = prime * result + velocity;
         return result;
     }
 
-    /*
-     * (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -226,21 +236,19 @@ public class Aircraft implements Serializable {
             return false;
         if (oddCprtime != other.oddCprtime)
             return false;
+        if (status != other.status)
+            return false;
         if (velocity != other.velocity)
             return false;
         return true;
     }
 
-    /*
-     * (non-Javadoc)
-     * @see java.lang.Object#toString()
-     */
     @Override
     public String toString() {
         return "Aircraft [addressICAO=" + addressICAO + ", flightNumber=" + flightNumber + ", latitude=" + latitude
                 + ", longitude=" + longitude + ", altitude=" + altitude + ", velocity=" + velocity + ", heading="
                 + heading + ", lastTimeSeen=" + lastTimeSeen + ", messageCounter=" + messageCounter + ", oddCprlat="
                 + oddCprlat + ", oddCprlon=" + oddCprlon + ", evenCprlat=" + evenCprlat + ", evenCprlon=" + evenCprlon
-                + ", oddCprtime=" + oddCprtime + ", evenCprtime=" + evenCprtime + "]";
+                + ", oddCprtime=" + oddCprtime + ", evenCprtime=" + evenCprtime + ", status=" + status + "]";
     }
 }
