@@ -28,6 +28,10 @@ public class Aircraft implements Serializable {
     public Aircraft() {
     }
 
+    public String key() {
+        return String.format("%06X_%d", addressICAO, lastTimeSeen);
+    }
+
     public int getAddressICAO() {
         return addressICAO;
     }

@@ -19,7 +19,7 @@ import adsbrecorder.jni.Dump1090Native;
 
 @EnableScheduling
 @SpringBootApplication
-@ComponentScan(basePackages = {"adsbrecorder.receiver", "adsbrecorder.receiver.service.impl"})
+@ComponentScan(basePackages = {"adsbrecorder.receiver", "adsbrecorder.receiver.service.impl", "adsbrecorder.receiver.repo"})
 public class Receiver implements CommandLineRunner {
 
     private static Logger logger = LoggerFactory.getLogger(Receiver.class);
